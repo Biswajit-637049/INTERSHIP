@@ -1,7 +1,8 @@
 import React from "react";
-import { Link, Outlet } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getAuth,signOut } from "firebase/auth";
 import TextField from '@mui/material/TextField';
+import { useEffect, useState } from "react";
 import {
   UserGroupIcon,
   CurrencyDollarIcon,
@@ -18,6 +19,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { app } from "../firebase/firebase.config";
 
 const data = [
   { name: "Mon", uv: 400 },
@@ -29,13 +31,17 @@ const data = [
   { name: "Sun", uv: 450 },
 ];
 
+
 const Dashboard = () => {
-  const location = useLocation();
-
-  // List of auth routes where we want to hide dashboard content
-  const authRoutes = ["/sign-up", "/login"];
-  const isAuthPage = authRoutes.includes(location.pathname);
-
+  const auth = getAuth(app);
+  const navigate = useNavigate();
+  const [userName, setUserName] = useState("");
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user) {
+      setUserName(user.displayName); // fallback to email if no name
+    }
+  }, []);
   return (
     <div className="flex h-screen bg-gray-100">
       <div className="flex flex-col items-start justify-between w-0.5/3 h-screen max-w-screen-lg bg-white rounded-lg shadow-lg p-8">
@@ -44,21 +50,30 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold mb-8">🎬 MovieDash</h2>
           <nav className="space-y-4">
             <Link to="/dashboard" className="block hover:text-yellow-400">Dashboard</Link>
-            <Link to="/login" className="block text-sm hover:text-yellow-400">Login</Link>
-            <Link to="/sign-up" className="block text-sm hover:text-yellow-400">Sign Up</Link>
+            <Link to="/analytics" className="block hover:text-yellow-400">Analytics</Link>
+            <Link to="/message" className="block hover:text-yellow-400">Message</Link>
+            <Link to="/setting" className="block hover:text-yellow-400">Setting</Link>
           </nav>
         </aside>
       </div>
 
       {/* Main Content */}
       <main className="flex-1 p-6 overflow-auto">
-        {isAuthPage ? (
-          <Outlet />
-        ) : (
-          <>
             <header className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-semibold">Dashboard</h1>
-              <TextField type="text" label="Type Here..." variant="outlined" className="px-4 py-2 rounded-md border shadow-sm" />
+              <h1 className="text-2xl font-semibold">{userName}-Dashboard</h1>
+              <TextField type="text" label="Type Here Something" variant="outlined" className="px-4 py-2 rounded-md border shadow-sm" />
+              <button
+              onClick={() => {
+                signOut(auth)
+                  .then(() => {
+                    console.log("User signed out");
+                    navigate("/login");
+                  })
+                  .catch((error) => {
+                    console.error("Error signing out:", error);
+                  });
+              }}
+              className="bg-red-500 hover:bg-red-700 text-white font-semibold cursor-pointer py-2 px-4 rounded">Signout</button>
             </header>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <StatCard title="Today's Money" value="$53k" icon={<CurrencyDollarIcon className="h-6 w-6" />} note="+55% than last week" color="bg-blue-500" />
@@ -69,7 +84,7 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <ChartCard title="Website Views" subtitle="Last Campaign Performance" color="blue" />
-              <ChartCard title="Daily Sales" subtitle="15% Increase in sales" color="red" />
+              <ChartCard title="Daily Add Movie" subtitle="15% Increase in movies" color="red" />
               <ChartCard title="Completed Tasks" subtitle="Last Campaign Performance" color="green" />
             </div>
             {/* === Bottom Section === */}
@@ -112,8 +127,6 @@ const Dashboard = () => {
               </div>
 
             </div>
-          </>
-        )}
       </main>
     </div>
   );
